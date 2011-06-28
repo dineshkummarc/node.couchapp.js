@@ -6,6 +6,7 @@ var path = require('path')
   , crypto = require('crypto')
   , mimetypes = require('./mimetypes')
   , spawn = require('child_process').spawn
+  , couchjs = require('./couchjs')
   ;
 
 var h = {'content-type':'application/json', 'accept-type':'application/json'}
@@ -55,11 +56,46 @@ function createApp (doc, url, cb) {
     app.doc.attachments_md5 = app.doc.attachments_md5 || {}
     app.doc._attachments = app.doc._attachments || {}
   }
+
+  app.prepare = function (callback) {
+    if('__source' in doc) {
+      var source = fs.readFileSync(app.doc.__source, 'utf8');
+      couchjs.jsSourceToDesignDoc(source, 'ddoc', function(err, ddoc) {
+        for(var n in ddoc)
+          app.doc[n] = ddoc[n];
+
+        app.doc.__attachments = app.doc.__attachments || []
+        app.doc.attachments_md5 = app.doc.attachments_md5 || {}
+        app.doc._attachments = app.doc._attachments || {}          
+        callback();
+      })
+    } else {
+      var p = function (x) {
+        for (i in x) {
+          if (i[0] != '_') {
+            if (typeof x[i] == 'function') {
+              x[i] = x[i].toString()
+              x[i] = 'function '+x[i].slice(x[i].indexOf('('))
+            }
+            if (typeof x[i] == 'object') {
+              p(x[i])
+            }
+          }
+        }
+      }
+      p(app.doc);
+      app.doc.__attachments = app.doc.__attachments || []
+      app.doc.attachments_md5 = app.doc.attachments_md5 || {}
+      app.doc._attachments = app.doc._attachments || {}
+      callback();
+    }
+  }
   
   var push = function (callback) {
     console.log('Serializing.')
     var doc = copy(app.doc);
     doc._attachments = copy(app.doc._attachments)
+    delete doc.__source;
     delete doc.__attachments;
     var body = JSON.stringify(doc)
     console.log('PUT '+url.replace(/^(https?:\/\/[^@:]+):[^@]+@/, '$1:******@'))
@@ -88,7 +124,7 @@ function createApp (doc, url, cb) {
       if (i !== '_rev') doc[i] = app.doc[i]
     }
     app.doc = doc;
-    app.prepare();
+    app.prepare(function() {
     revpos = app.doc._rev ? parseInt(app.doc._rev.slice(0,app.doc._rev.indexOf('-'))) : 0;
     
     app.doc.__attachments.forEach(function (att) {
@@ -126,6 +162,7 @@ function createApp (doc, url, cb) {
         })(i)}
       })
     })
+    }) // app.prepare(function() { ... }) 
     if (!app.doc.__attachments || app.doc.__attachments.length == 0) push(callback);
   }  
   
