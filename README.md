@@ -77,36 +77,32 @@ app.js example:
 If you use features present in spidermonkey and absent from v8, such
 as E4X, do the following in app.js:
 
-<pre>
-  var couchapp = require('couchapp')
-
-  ddoc = {
-    _id: '_design/app',
-    __source: 'ddoc.js'
-  }
-
-  module.exports = ddoc;
-</pre>
+      var couchapp = require('couchapp')
+    
+      ddoc = {
+        _id: '_design/app',
+        __source: 'ddoc.js'
+      }
+    
+      module.exports = ddoc;
 
 Create a file ddoc.js at the same level as app.js:
 
-<pre>
-var ddoc = { // important: must be called 'ddoc'
-  lists: {
-    all: function(head, req) {
-      provides('html', function() {
-        var message = 'Hello, world!';
-        var page = <html xmlns="http://www.w3.org/1999/xhtml">
-          <head/>
-          <body>{message}</body>
-          </html>;
-        send('<!DOCTYPE html>');
-        send(view);
-      });
+    var ddoc = { // important: must be called 'ddoc'
+      lists: {
+        all: function(head, req) {
+          provides('html', function() {
+            var message = 'Hello, world!';
+            var page = <html xmlns="http://www.w3.org/1999/xhtml">
+              <head/>
+              <body>{message}</body>
+              </html>;
+            send('<!DOCTYPE html>');
+            send(view);
+          });
+        }
+      }
     }
-  }
-}
-</pre>
-
+    
 And ddoc.js will be parsed by spidermonkey. The 'couchjs' binary must
 be installed and available in $PATH.
