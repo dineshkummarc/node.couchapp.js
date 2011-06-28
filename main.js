@@ -170,6 +170,9 @@ function createApp (doc, url, cb) {
               dirty = true;
               console.log("Removed "+change[1]);
             } else {
+              if(!path.existsSync(change[0]))
+                return;
+                
               pending += 1
               
               fs.readFile(change[0], function (err, data) {
